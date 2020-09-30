@@ -29,6 +29,7 @@ const (
 	DefaultDubboPodLabelSelector = "monitor-type-thread-dubbo-pool=enable"
 	DubboExporter                = "dubbo_exporter"
 	provinceNodeLabelKey         = "province-%v"
+	ProvinceAll                  = "all"
 )
 
 type Exporter struct {
@@ -55,11 +56,14 @@ func (e *Exporter) collectMetrics(metrics chan<- prometheus.Metric) {
 }
 
 func (e *Exporter) Collect(metrics chan<- prometheus.Metric) {
+	//清理metrics信息
+	e.reset()
 	se, _ := labels.Parse(e.dubboPodLabel)
 	pods, err := e.podLister.List(se)
 	if err != nil {
 		return
 	}
+
 
 	wg := sync.WaitGroup{}
 	for _, p := range pods {
@@ -76,7 +80,7 @@ func (e *Exporter) Collect(metrics chan<- prometheus.Metric) {
 				klog.Errorf("Get dubbo pod: %v/%v node: %v err: %v, skip!", pod.Namespace, pod.Name, nodeName, err)
 				return
 			}
-			if node.Labels[fmt.Sprintf(provinceNodeLabelKey, e.provinceNodeLabelValue)] != e.provinceNodeLabelValue {
+			if e.provinceNodeLabelValue != ProvinceAll && node.Labels[fmt.Sprintf(provinceNodeLabelKey, e.provinceNodeLabelValue)] != e.provinceNodeLabelValue {
 				klog.V(2).Infof("Dubbo pod: %v/%v nodeName: %v is not province: %v, skip collect!", pod.Namespace, pod.Name, pod.Spec.NodeName, e.provinceNodeLabelValue)
 				return
 			}
@@ -163,4 +167,11 @@ func (e *Exporter) metric(addr string) (string, string, error) {
 		return "", "", fmt.Errorf("get max--- %v ; active--- %v", tmpPoolMax, tmpPoolActive)
 	}
 	return tmpPoolMax[1], tmpPoolActive[1], nil
+}
+
+//清理之前的metric
+func (e *Exporter) reset() {
+	for _, metric := range e.metrics {
+		metric.Reset()
+	}
 }

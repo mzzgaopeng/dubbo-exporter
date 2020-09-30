@@ -49,7 +49,7 @@ func NewCommandStartExporterServer(stopCh <-chan struct{}) *cobra.Command {
 	flags.StringVar(&o.MetricPath, "path", o.MetricPath, "Path under which to expose metrics.")
 	flags.StringVar(&o.ListenAddress, "listen-addr", o.ListenAddress, "Address to listen on for web interface and telemetry.")
 	flags.StringVar(&o.dubboPodLabel, "dubbo-pod-label", o.dubboPodLabel, "dubbo pod label, default "+metric.DefaultDubboPodLabelSelector)
-	flags.StringVar(&o.provinceNodeLabelValue, "province", o.provinceNodeLabelValue, "province node label value, must not be empty")
+	flags.StringVar(&o.provinceNodeLabelValue, "province", o.provinceNodeLabelValue, "province node label value, must not be empty by specific province collect, default "+metric.ProvinceAll+" pod in k8s cluster")
 	flags.IntVar(&o.dubboPort, "dubbo-port", o.dubboPort, "dubbo port, default 8082")
 	flags.DurationVar(&o.telnetTimeout, "telnet-timeout", o.telnetTimeout, "telnet timeout, default 100ms")
 	return cmd
@@ -68,11 +68,12 @@ type DubboExporterServerOptions struct {
 // NewDubboExporterServerOptions constructs a new set of default options for metric.DubboExporter.
 func NewDubboExporterServerOptions() *DubboExporterServerOptions {
 	o := &DubboExporterServerOptions{
-		MetricPath:    "/metrics",
-		ListenAddress: ":8080",
-		dubboPort:     8082,
-		dubboPodLabel: metric.DefaultDubboPodLabelSelector,
-		telnetTimeout: 100 * time.Millisecond,
+		MetricPath:             "/metrics",
+		ListenAddress:          ":8080",
+		dubboPort:              8082,
+		dubboPodLabel:          metric.DefaultDubboPodLabelSelector,
+		telnetTimeout:          100 * time.Millisecond,
+		provinceNodeLabelValue: metric.ProvinceAll,
 	}
 	return o
 }
@@ -112,7 +113,7 @@ func (o *DubboExporterServerOptions) Run(stopCh <-chan struct{}) error {
 
 	informers := informers.NewSharedInformerFactory(kubeClient, 0)
 
-	exp := metric.NewDubboExporter(informers, kubeClient, o.dubboPort, o.dubboPodLabel,  o.provinceNodeLabelValue, o.telnetTimeout)
+	exp := metric.NewDubboExporter(informers, kubeClient, o.dubboPort, o.dubboPodLabel, o.provinceNodeLabelValue, o.telnetTimeout)
 	podInformer := informers.Core().V1().Pods().Informer()
 	nodeInformer := informers.Core().V1().Nodes().Informer()
 	go informers.Start(stopCh)
