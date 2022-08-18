@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"github.com/xuchaoi/dubbo-exporter/cmd/dubbo-exporter/app"
+	"harmonycloud.cn/dubbo-exporter/cmd/dubbo-exporter/app"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/component-base/logs"
 	"os"

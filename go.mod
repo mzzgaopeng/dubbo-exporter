@@ -1,4 +1,4 @@
-module github.com/xuchaoi/dubbo-exporter
+module harmonycloud.cn/dubbo-exporter
 
 go 1.15
 

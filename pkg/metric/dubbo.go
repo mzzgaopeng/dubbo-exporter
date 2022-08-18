@@ -3,7 +3,7 @@ package metric
 import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/xuchaoi/dubbo-exporter/pkg/util"
+	"harmonycloud.cn/dubbo-exporter/pkg/util"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
@@ -28,7 +28,7 @@ const (
 	activeMetric                 = "active"
 	DefaultDubboPodLabelSelector = "monitor-type-thread-dubbo-pool=enable"
 	DubboExporter                = "dubbo_exporter"
-	provinceNodeLabelKey         = "province-%v"
+	//provinceNodeLabelKey         = "province-%v"
 	ProvinceAll                  = "all"
 )
 
@@ -80,9 +80,14 @@ func (e *Exporter) Collect(metrics chan<- prometheus.Metric) {
 				klog.Errorf("Get dubbo pod: %v/%v node: %v err: %v, skip!", pod.Namespace, pod.Name, nodeName, err)
 				return
 			}
-			if e.provinceNodeLabelValue != ProvinceAll && node.Labels[fmt.Sprintf(provinceNodeLabelKey, e.provinceNodeLabelValue)] != e.provinceNodeLabelValue {
-				klog.V(2).Infof("Dubbo pod: %v/%v nodeName: %v is not province: %v, skip collect!", pod.Namespace, pod.Name, pod.Spec.NodeName, e.provinceNodeLabelValue)
-				return
+			//province-hn-xx
+			//if e.provinceNodeLabelValue != ProvinceAll && node.Labels[fmt.Sprintf(provinceNodeLabelKey, e.provinceNodeLabelValue)] != e.provinceNodeLabelValue {
+			if _, exist := node.Labels[e.provinceNodeLabelValue]; !exist{
+				if e.provinceNodeLabelValue != ProvinceAll {
+					klog.V(2).Infof("Dubbo pod: %v/%v nodeName: %v is not province: %v, skip collect!", pod.Namespace, pod.Name, pod.Spec.NodeName, e.provinceNodeLabelValue)
+					return
+				}
+
 			}
 			if !util.IsPodReady(pod) {
 				klog.V(2).Infof("Dubbo pod: %v/%v is not ready, skip collect!", pod.Namespace, pod.Name)
