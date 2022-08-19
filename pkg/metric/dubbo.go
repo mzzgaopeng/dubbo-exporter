@@ -93,7 +93,16 @@ func (e *Exporter) Collect(metrics chan<- prometheus.Metric) {
 				klog.V(2).Infof("Dubbo pod: %v/%v is not ready, skip collect!", pod.Namespace, pod.Name)
 				return
 			}
-			max, active, err := e.metric(fmt.Sprintf("%v:%v", pod.Status.PodIP, e.dubboPort))
+			var fmtaddr string
+			IPisfamily := ipfamily(pod.Status.PodIP)
+			switch IPisfamily {
+			case 6:
+				fmtaddr = fmt.Sprint("[",pod.Status.PodIP,"]")
+			case 4:
+				fmtaddr = pod.Status.PodIP
+			}
+
+			max, active, err := e.metric(fmt.Sprintf("%v:%v", fmtaddr, e.dubboPort))
 			if err != nil {
 				klog.V(2).Infof("Read dubbo pod: %v/%v metric err: %v", pod.Namespace, pod.Name, err)
 				return
@@ -146,7 +155,21 @@ func NewDubboExporter(informer informers.SharedInformerFactory,
 	}, []string{namespaceLabel, podNameLabel, podIPLabel, podPortLabel, podProvinceLabel})
 	return &e
 }
-
+func ipfamily(s string) int {
+	ip := net.ParseIP(s)
+	if ip == nil {
+		return 0
+	}
+	for i := 0; i < len(s); i++ {
+		switch s[i] {
+		case '.':
+			return 4
+		case ':':
+			return 6
+		}
+	}
+	return 0
+}
 func (e *Exporter) metric(addr string) (string, string, error) {
 	// 3 秒超时
 	conn, err := net.DialTimeout("tcp", addr, e.telnetTimeout)
