@@ -41,6 +41,8 @@ type Exporter struct {
 	dubboPodLabel          string
 	provinceNodeLabelValue string
 	telnetTimeout          time.Duration
+	readTimeout          time.Duration
+
 }
 
 func (e *Exporter) Describe(descs chan<- *prometheus.Desc) {
@@ -131,7 +133,8 @@ func NewDubboExporter(informer informers.SharedInformerFactory,
 	port int,
 	dubboPodLabel string,
 	provinceNodeLabelValue string,
-	tm time.Duration) *Exporter {
+	tm time.Duration,
+	rm time.Duration) *Exporter {
 	e := Exporter{
 		metrics:                make(map[string]*prometheus.GaugeVec),
 		podLister:              informer.Core().V1().Pods().Lister(),
@@ -141,6 +144,7 @@ func NewDubboExporter(informer informers.SharedInformerFactory,
 		dubboPodLabel:          dubboPodLabel,
 		provinceNodeLabelValue: provinceNodeLabelValue,
 		telnetTimeout:          tm,
+		readTimeout:			rm,
 	}
 	e.metrics[maxMetric] = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Namespace: DubboExporter,
@@ -179,6 +183,8 @@ func (e *Exporter) metric(addr string) (string, string, error) {
 	defer conn.Close()
 	conn.Write([]byte("status -l \n"))
 	output := make([]byte, 400)
+	//追加read超时配置
+	conn.SetDeadline(time.Now().Add(e.readTimeout))
 	_, err = conn.Read(output)
 
 	if err != nil {

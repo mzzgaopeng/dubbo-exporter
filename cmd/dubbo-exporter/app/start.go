@@ -52,6 +52,7 @@ func NewCommandStartExporterServer(stopCh <-chan struct{}) *cobra.Command {
 	flags.StringVar(&o.provinceNodeLabelValue, "province", o.provinceNodeLabelValue, "province node label value, must not be empty by specific province collect, default "+metric.ProvinceAll+" pod in k8s cluster")
 	flags.IntVar(&o.dubboPort, "dubbo-port", o.dubboPort, "dubbo port, default 8082")
 	flags.DurationVar(&o.telnetTimeout, "telnet-timeout", o.telnetTimeout, "telnet timeout, default 100ms")
+	flags.DurationVar(&o.readTimeout, "read-timeout", o.readTimeout, "read timeout, default 500ms")
 	return cmd
 }
 
@@ -63,6 +64,7 @@ type DubboExporterServerOptions struct {
 	provinceNodeLabelValue string
 	dubboPort              int
 	telnetTimeout          time.Duration
+	readTimeout          time.Duration
 }
 
 // NewDubboExporterServerOptions constructs a new set of default options for metric.DubboExporter.
@@ -74,6 +76,7 @@ func NewDubboExporterServerOptions() *DubboExporterServerOptions {
 		dubboPodLabel:          metric.DefaultDubboPodLabelSelector,
 		telnetTimeout:          100 * time.Millisecond,
 		provinceNodeLabelValue: metric.ProvinceAll,
+		readTimeout:			500 * time.Millisecond,
 	}
 	return o
 }
@@ -113,7 +116,7 @@ func (o *DubboExporterServerOptions) Run(stopCh <-chan struct{}) error {
 
 	informers := informers.NewSharedInformerFactory(kubeClient, 0)
 
-	exp := metric.NewDubboExporter(informers, kubeClient, o.dubboPort, o.dubboPodLabel, o.provinceNodeLabelValue, o.telnetTimeout)
+	exp := metric.NewDubboExporter(informers, kubeClient, o.dubboPort, o.dubboPodLabel, o.provinceNodeLabelValue, o.telnetTimeout, o.readTimeout)
 	podInformer := informers.Core().V1().Pods().Informer()
 	nodeInformer := informers.Core().V1().Nodes().Informer()
 	go informers.Start(stopCh)
